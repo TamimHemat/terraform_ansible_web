@@ -1,0 +1,68 @@
+---
+- name: Install and Configure Nginx and MySQL
+  hosts: ec2_instance
+  become: true
+
+  tasks:
+  - name: Install Python3
+    apt:
+      name: python3
+      state: present
+
+  - name: Install pip
+    apt:
+      name: python3-pip
+      state: present
+
+  - name: Install PyMySQL
+    pip:
+      name: pymysql
+      executable: pip3
+      
+  - name: Install Nginx
+    apt:
+      name: nginx
+      state: present
+
+  - name: Copy static HTML file
+    copy:
+      src: "hello.html"
+      dest: /var/www/html/index.html
+    
+  - name: Copy Nginx configuration file
+    copy:
+      src: "default.conf"
+      dest: /etc/nginx/sites-available/default
+    notify: Restart Nginx
+
+  - name: Install MySQL client
+    apt:
+      name: mysql-client
+      state: present
+
+  - name: Create MySQL database
+    community.mysql.mysql_db:
+      login_user: admin
+      login_password: password
+      login_host: acit-4640-rds.c5dqoalqa93e.us-west-2.rds.amazonaws.com
+      login_port: 3306
+      name: bookstack
+      state: present
+
+  - name: Create MySQL user
+    community.mysql.mysql_user:
+      login_user: admin
+      login_password: password
+      login_host: acit-4640-rds.c5dqoalqa93e.us-west-2.rds.amazonaws.com
+      login_port: 3306
+      name: bookstack
+      password: bookstack
+      priv: 'bookstack.*:ALL'
+      host: '%'
+      state: present
+
+  handlers:
+  - name: Restart Nginx
+    service:
+      name: nginx
+      state: restarted
